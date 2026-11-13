@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+history/history.json
+static/charts/*.png
+.env
+.DS_Store
+cloudflared.log
+public_url.txt

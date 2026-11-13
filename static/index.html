@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kronos AI + DayTrader Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0f9ff', 500: '#0284c7', 600: '#0369a1', 900: '#0c4a6e' },
+            dark: { 950: '#050811', 900: '#090e1a', 850: '#0f172a', 800: '#1e293b', 700: '#334155' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090e1a; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Top App Navigation -->
+  <header class="border-b border-dark-800 bg-dark-900/90 backdrop-blur sticky top-0 z-40 px-4 md:px-8 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+        <i class="fa-solid fa-chart-line text-white text-base"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-base font-bold tracking-tight text-white">Kronos AI + DayTrader</h1>
+          <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">Active • 102M Base</span>
+        </div>
+        <p class="text-xs text-slate-400">Foundation Stock Transformer + 10k Monte Carlo DayTrader Replays</p>
+      </div>
+    </div>
+
+    <!-- Quick Status Badges & History Toggle -->
+    <div class="flex items-center space-x-3">
+      <div class="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-400 bg-dark-950 px-3 py-1.5 rounded-lg border border-dark-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>AI Inference Engine</span>
+      </div>
+      <button type="button" onclick="toggleHistoryDrawer()" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-xs font-medium text-slate-200 border border-dark-700 flex items-center space-x-1.5 transition cursor-pointer">
+        <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+        <span>History</span>
+        <span id="historyBadge" class="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-300 font-mono">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Controls Panel (4 Cols) -->
+    <div class="lg:col-span-4 space-y-5">
+      
+      <!-- Input Card -->
+      <div class="bg-dark-900 border border-dark-800 rounded-xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-dark-800 pb-3">
+          <h2 class="text-sm font-semibold text-slate-100 flex items-center space-x-2">
+            <i class="fa-solid fa-sliders text-sky-400"></i>
+            <span>Asset & Parameters</span>
+          </h2>
+          <span class="text-[11px] text-emerald-400 font-medium">Groww Stocks • MCX • Index</span>
+        </div>
+
+        <!-- Searchable Stock / Commodity Dropdown Input -->
+        <div class="relative" id="searchBoxContainer">
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">
+            Search Stock, Index or Commodity
+          </label>
+          <div class="relative flex items-center">
+            <input type="text" id="tickerInput" value="RELIANCE.NS" placeholder="Search Reliance, Hexagon, Nifty, Crude, Gold..."
+              autocomplete="off" spellcheck="false"
+              class="w-full bg-dark-950 border border-dark-700 rounded-lg pl-9 pr-9 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition uppercase"
+              onclick="showDropdown()" onfocus="showDropdown()" oninput="handleSearchInput(this.value)" onkeydown="handleKeyDown(event)">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-500 text-xs pointer-events-none"></i>
+            <button type="button" id="clearBtn" onclick="clearTicker(event)" title="Clear search input"
+              class="absolute right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-dark-800 transition z-20 cursor-pointer">
+              <i class="fa-solid fa-xmark text-xs pointer-events-none"></i>
+            </button>
+          </div>
+          <div id="selectedAssetName" class="text-[11px] text-sky-400 mt-1 font-medium truncate">
+            Reliance Industries (Jio / Retail / O2C) (Groww NSE)
+          </div>
+
+          <!-- Dropdown List of Every Single Tradeable Stock & Commodity -->
+          <div id="assetsDropdown" class="absolute left-0 right-0 top-[70px] bg-dark-900 border border-dark-700 rounded-lg shadow-2xl z-50 max-h-72 overflow-y-auto hidden">
+            <div id="dropdownList" class="p-1.5 space-y-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Searches (Last 5) -->
+        <div class="pt-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+            <span class="font-medium flex items-center space-x-1">
+              <i class="fa-solid fa-clock-rotate-left text-sky-400 text-[10px]"></i>
+              <span>Recent Searches (Last 5)</span>
+            </span>
+            <button type="button" onclick="clearRecentSearches()" class="text-[10px] text-slate-500 hover:text-slate-300 cursor-pointer">Clear</button>
+          </div>
+          <div id="recentSearchesContainer" class="flex flex-wrap gap-1.5 text-xs font-mono min-h-[28px] items-center">
+            <span class="text-[11px] text-slate-500 italic py-0.5">Your recent 5 searches will appear here.</span>
+          </div>
+        </div>
+
+        <!-- Timeframe & Model Grid -->
+        <div class="grid grid-cols-2 gap-3 pt-1 border-t border-dark-800/80">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Horizon</label>
+            <select id="timeframeSelect" class="w-full bg-dark-950 border border-dark-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="daily" selected>Daily (20 Days)</option>
+              <option value="hourly">Hourly (24 Hours)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Model Engine</label>
+            <select id="modelSelect" class="w-full bg-dark-950 border border-dark-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="small" selected>Kronos-small (~15s Fast)</option>
+              <option value="base">Kronos-base (~60s Deep)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Capital & Risk Grid -->
+        <div class="grid grid-cols-2 gap-3 pt-1 border-t border-dark-800/80">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Account Capital (₹)</label>
+            <input type="number" id="capitalInput" value="100000" step="5000"
+              class="w-full bg-dark-950 border border-dark-700 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Max Risk / Trade</label>
+            <select id="riskPctSelect" class="w-full bg-dark-950 border border-dark-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="0.5">0.5% (Conservative)</option>
+              <option value="1.0" selected>1.0% (Standard)</option>
+              <option value="1.5">1.5% (Aggressive)</option>
+              <option value="2.0">2.0% (High Risk)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button type="button" id="runBtn" onclick="runForecast()" class="w-full py-3 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-sky-500/25 flex items-center justify-center space-x-2 transition transform active:scale-[0.98] cursor-pointer">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Execute Forecast & Replay</span>
+        </button>
+
+        <!-- Live Visual Progress Bar -->
+        <div id="progressWrapper" class="space-y-1.5 hidden">
+          <div class="flex justify-between text-[11px] font-mono">
+            <span id="progressText" class="text-sky-300">Processing...</span>
+            <span id="progressPct" class="text-slate-400">0%</span>
+          </div>
+          <div class="w-full h-1.5 bg-dark-950 rounded-full overflow-hidden border border-dark-700">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-300 w-0"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Realtime Activity Log Console -->
+      <div class="bg-dark-900 border border-dark-800 rounded-xl p-4 shadow-xl space-y-2">
+        <div class="flex items-center justify-between border-b border-dark-800 pb-2">
+          <div class="flex items-center space-x-2">
+            <span id="logStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-xs font-semibold text-slate-300">Live Activity Feed</span>
+          </div>
+          <button type="button" onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 cursor-pointer">Clear</button>
+        </div>
+        <div id="logConsole" class="h-44 overflow-y-auto space-y-1.5 font-mono text-[11px] text-slate-300 p-2.5 rounded bg-dark-950/80 border border-dark-800">
+          <div class="text-slate-500">Ready. Type or select any stock, index or commodity to start.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Workspace Panel (8 Cols) -->
+    <div class="lg:col-span-8 space-y-6">
+      
+      <!-- Primary Analytics Chart View -->
+      <div class="bg-dark-900 border border-dark-800 rounded-xl p-5 shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 id="chartTitle" class="text-base font-bold text-white font-mono">RELIANCE.NS — Kronos Forecast</h2>
+              <span id="priceBadge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Last: ₹1,273.40</span>
+            </div>
+            <p id="chartSubtitle" class="text-xs text-slate-400 mt-0.5">Daily horizon • 20 Monte Carlo Autoregressive Paths</p>
+          </div>
+          <div class="flex items-center space-x-2 text-xs font-mono">
+            <span class="flex items-center space-x-1 text-sky-400"><span class="w-2 h-2 rounded-full bg-sky-400"></span><span>Median 50%</span></span>
+            <span class="flex items-center space-x-1 text-slate-400"><span class="w-2 h-2 rounded-full bg-indigo-500/40"></span><span>90% Envelope</span></span>
+          </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="w-full aspect-[16/9] bg-dark-950 rounded-lg border border-dark-800 relative flex items-center justify-center overflow-hidden">
+          <div id="chartLoader" class="absolute inset-0 bg-dark-950/80 backdrop-blur flex flex-col items-center justify-center space-y-3 z-10 hidden">
+            <i class="fa-solid fa-circle-notch animate-spin text-3xl text-sky-500"></i>
+            <span class="text-xs font-mono text-slate-300">Kronos Foundation Transformer + DayTrader Replay Running...</span>
+          </div>
+
+          <div id="chartPlaceholder" class="text-center space-y-2 p-6">
+            <i class="fa-solid fa-chart-area text-4xl text-slate-700"></i>
+            <p class="text-xs text-slate-400 max-w-sm">No active forecast plotted yet. Click <strong class="text-sky-400">Execute Forecast & Replay</strong> on the left to start.</p>
+          </div>
+
+          <img id="chartImg" src="" alt="Kronos Forecast Chart" class="w-full h-full object-contain hidden">
+        </div>
+      </div>
+
+      <!-- DayTrader Intelligence Modules (Grid 2 Cols) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        
+        <!-- DayTrader TimeMachine Replay Engine -->
+        <div class="bg-dark-900 border border-dark-800 rounded-xl p-5 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-dark-800 pb-2.5">
+            <div class="flex items-center space-x-2">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-microchip"></i>
+              </div>
+              <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">DayTrader TimeMachine Odds</h3>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500">10,000 Bootstraps</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5 text-center">
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Target First</div>
+              <div id="tmTargetPct" class="text-base font-bold font-mono text-emerald-400 mt-0.5">--</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Stop First</div>
+              <div id="tmStopPct" class="text-base font-bold font-mono text-rose-400 mt-0.5">--</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Neither (Drift)</div>
+              <div id="tmNeitherPct" class="text-base font-bold font-mono text-slate-400 mt-0.5">--</div>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1 text-xs">
+            <div class="flex justify-between py-1 border-b border-dark-800/60">
+              <span class="text-slate-400">Mathematical Expectancy:</span>
+              <span id="tmExpectancy" class="font-mono font-semibold text-white">--</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-dark-800/60">
+              <span class="text-slate-400">Kelly Criterion Allocation:</span>
+              <span id="tmKelly" class="font-mono font-semibold text-sky-400">--</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">System Verdict:</span>
+              <span id="tmVerdict" class="font-mono font-semibold text-emerald-400">Awaiting Execution</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DayTrader ATR Trade Plan & Position Sizing -->
+        <div class="bg-dark-900 border border-dark-800 rounded-xl p-5 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-dark-800 pb-2.5">
+            <div class="flex items-center space-x-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">DayTrader Trade Brackets & Risk</h3>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500">14-Period ATR</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5 text-center">
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Entry Price</div>
+              <div id="planEntry" class="text-sm font-bold font-mono text-white mt-0.5">--</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Stop (1.5x ATR)</div>
+              <div id="planStop" class="text-sm font-bold font-mono text-rose-400 mt-0.5">--</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-dark-950 border border-dark-800">
+              <div class="text-[10px] text-slate-400 uppercase">Target 2R</div>
+              <div id="planTarget2R" class="text-sm font-bold font-mono text-emerald-400 mt-0.5">--</div>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1 text-xs">
+            <div class="flex justify-between py-1 border-b border-dark-800/60">
+              <span class="text-slate-400">Max Risk Capital Allocated:</span>
+              <span id="planRiskAmount" class="font-mono font-semibold text-white">--</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-dark-800/60">
+              <span class="text-slate-400">Sized Share Position:</span>
+              <span id="planShares" class="font-mono font-semibold text-emerald-400">-- units</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Total Capital Exposure:</span>
+              <span id="planExposure" class="font-mono font-semibold text-white">--</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quantile Horizon Table -->
+      <div id="quantilesCard" class="bg-dark-900 border border-dark-800 rounded-xl p-5 shadow-xl hidden">
+        <div class="flex items-center justify-between border-b border-dark-800 pb-3 mb-3">
+          <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+            <i class="fa-solid fa-table-cells text-sky-400"></i>
+            <span>Kronos Autoregressive Forecast Confidence Interval</span>
+          </h3>
+          <span class="text-[11px] font-mono text-slate-400">5th, 50th (Likely), 95th Percentiles</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs font-mono text-left">
+            <thead>
+              <tr class="border-b border-dark-800 text-slate-400">
+                <th class="py-2 px-3">Step / Timestamp</th>
+                <th class="py-2 px-3 text-rose-400">Bear Envelope (5%)</th>
+                <th class="py-2 px-3 text-sky-300">Expected Path (50%)</th>
+                <th class="py-2 px-3 text-emerald-400">Bull Envelope (95%)</th>
+              </tr>
+            </thead>
+            <tbody id="quantilesTableBody" class="divide-y divide-dark-800/40">
+              <!-- Filled via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Forecast History Slide-over Drawer -->
+  <div id="historyDrawer" class="fixed inset-y-0 right-0 w-80 md:w-96 bg-dark-900 border-l border-dark-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    <div class="p-4 border-b border-dark-800 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+        <h3 class="text-sm font-bold text-white">Forecast History</h3>
+      </div>
+      <button type="button" onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
+      <div class="text-slate-500 text-center py-8">No past forecasts found.</div>
+    </div>
+  </div>
+
+  <script>
+    // Embedded asset catalog for instantaneous, zero-latency availability
+    const embeddedAssets = [{"s":"^NSEI","n":"NIFTY 50 Index","cat":"INDEX","ex":"Groww NSE","idx":0},{"s":"^NSEBANK","n":"NIFTY Bank Index","cat":"INDEX","ex":"Groww NSE","idx":1},{"s":"NIFTY_FIN_SERVICE.NS","n":"NIFTY Financial Services (FINNIFTY)","cat":"INDEX","ex":"Groww NSE","idx":2},{"s":"^CNXIT","n":"NIFTY IT Index","cat":"INDEX","ex":"Groww NSE","idx":3},{"s":"^CNXAUTO","n":"NIFTY Auto Index","cat":"INDEX","ex":"Groww NSE","idx":4},{"s":"^CNXFMCG","n":"NIFTY FMCG Index","cat":"INDEX","ex":"Groww NSE","idx":5},{"s":"^CNXMETAL","n":"NIFTY Metal Index","cat":"INDEX","ex":"Groww NSE","idx":6},{"s":"^CNXPHARMA","n":"NIFTY Pharma Index","cat":"INDEX","ex":"Groww NSE","idx":7},{"s":"^CNXENERGY","n":"NIFTY Energy Index","cat":"INDEX","ex":"Groww NSE","idx":8},{"s":"^CNXINFRA","n":"NIFTY Infrastructure Index","cat":"INDEX","ex":"Groww NSE","idx":9},{"s":"^NSEMDCP50","n":"NIFTY Midcap 50 Index","cat":"INDEX","ex":"Groww NSE","idx":10},{"s":"^BSESN","n":"BSE SENSEX Index","cat":"INDEX","ex":"Groww BSE","idx":11},{"s":"CL=F","n":"Crude Oil (MCX / WTI Futures)","cat":"COMMODITY","ex":"Groww MCX","idx":12},{"s":"NG=F","n":"Natural Gas (MCX / Henry Hub)","cat":"COMMODITY","ex":"Groww MCX","idx":13},{"s":"GC=F","n":"Gold (MCX / COMEX Futures)","cat":"COMMODITY","ex":"Groww MCX","idx":14},{"s":"SI=F","n":"Silver (MCX / COMEX Futures)","cat":"COMMODITY","ex":"Groww MCX","idx":15},{"s":"HG=F","n":"Copper (MCX / COMEX Futures)","cat":"COMMODITY","ex":"Groww MCX","idx":16},{"s":"BZ=F","n":"Brent Crude Oil Futures","cat":"COMMODITY","ex":"Groww MCX","idx":17},{"s":"PL=F","n":"Platinum Futures","cat":"COMMODITY","ex":"Groww MCX","idx":18},{"s":"RELIANCE.NS","n":"Reliance Industries (Jio / Retail / O2C)","cat":"EQUITY","ex":"Groww NSE","idx":19},{"s":"HEXAGON.NS","n":"Hexagon Nutrition Limited","cat":"EQUITY","ex":"Groww NSE","idx":20},{"s":"TCS.NS","n":"Tata Consultancy Services","cat":"EQUITY","ex":"Groww NSE","idx":21},{"s":"HDFCBANK.NS","n":"HDFC Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":22},{"s":"ICICIBANK.NS","n":"ICICI Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":23},{"s":"INFY.NS","n":"Infosys Limited","cat":"EQUITY","ex":"Groww NSE","idx":24},{"s":"SBIN.NS","n":"State Bank of India","cat":"EQUITY","ex":"Groww NSE","idx":25},{"s":"BHARTIARTL.NS","n":"Bharti Airtel Limited","cat":"EQUITY","ex":"Groww NSE","idx":26},{"s":"TATAMOTORS.NS","n":"Tata Motors Limited","cat":"EQUITY","ex":"Groww NSE","idx":27},{"s":"TATASTEEL.NS","n":"Tata Steel Limited","cat":"EQUITY","ex":"Groww NSE","idx":28},{"s":"ITC.NS","n":"ITC Limited","cat":"EQUITY","ex":"Groww NSE","idx":29},{"s":"LT.NS","n":"Larsen & Toubro Limited","cat":"EQUITY","ex":"Groww NSE","idx":30},{"s":"KOTAKBANK.NS","n":"Kotak Mahindra Bank","cat":"EQUITY","ex":"Groww NSE","idx":31},{"s":"AXISBANK.NS","n":"Axis Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":32},{"s":"MARUTI.NS","n":"Maruti Suzuki India","cat":"EQUITY","ex":"Groww NSE","idx":33},{"s":"SUNPHARMA.NS","n":"Sun Pharmaceutical Industries","cat":"EQUITY","ex":"Groww NSE","idx":34},{"s":"TITAN.NS","n":"Titan Company Limited","cat":"EQUITY","ex":"Groww NSE","idx":35},{"s":"BAJFINANCE.NS","n":"Bajaj Finance Limited","cat":"EQUITY","ex":"Groww NSE","idx":36},{"s":"BAJAJFINSV.NS","n":"Bajaj Finserv Limited","cat":"EQUITY","ex":"Groww NSE","idx":37},{"s":"ASIANPAINT.NS","n":"Asian Paints Limited","cat":"EQUITY","ex":"Groww NSE","idx":38},{"s":"HCLTECH.NS","n":"HCL Technologies","cat":"EQUITY","ex":"Groww NSE","idx":39},{"s":"WIPRO.NS","n":"Wipro Limited","cat":"EQUITY","ex":"Groww NSE","idx":40},{"s":"NTPC.NS","n":"NTPC Limited","cat":"EQUITY","ex":"Groww NSE","idx":41},{"s":"POWERGRID.NS","n":"Power Grid Corporation of India","cat":"EQUITY","ex":"Groww NSE","idx":42},{"s":"ONGC.NS","n":"Oil and Natural Gas Corporation","cat":"EQUITY","ex":"Groww NSE","idx":43},{"s":"COALINDIA.NS","n":"Coal India Limited","cat":"EQUITY","ex":"Groww NSE","idx":44},{"s":"ADANIENT.NS","n":"Adani Enterprises Limited","cat":"EQUITY","ex":"Groww NSE","idx":45},{"s":"ADANIPORTS.NS","n":"Adani Ports & SEZ","cat":"EQUITY","ex":"Groww NSE","idx":46},{"s":"ADANIPOWER.NS","n":"Adani Power Limited","cat":"EQUITY","ex":"Groww NSE","idx":47},{"s":"ADANIGREEN.NS","n":"Adani Green Energy Limited","cat":"EQUITY","ex":"Groww NSE","idx":48},{"s":"ATGL.NS","n":"Adani Total Gas Limited","cat":"EQUITY","ex":"Groww NSE","idx":49},{"s":"M&M.NS","n":"Mahindra & Mahindra Limited","cat":"EQUITY","ex":"Groww NSE","idx":50},{"s":"ULTRACEMCO.NS","n":"UltraTech Cement Limited","cat":"EQUITY","ex":"Groww NSE","idx":51},{"s":"NESTLEIND.NS","n":"Nestle India Limited","cat":"EQUITY","ex":"Groww NSE","idx":52},{"s":"GRASIM.NS","n":"Grasim Industries Limited","cat":"EQUITY","ex":"Groww NSE","idx":53},{"s":"JSWSTEEL.NS","n":"JSW Steel Limited","cat":"EQUITY","ex":"Groww NSE","idx":54},{"s":"HINDALCO.NS","n":"Hindalco Industries Limited","cat":"EQUITY","ex":"Groww NSE","idx":55},{"s":"BPCL.NS","n":"Bharat Petroleum Corporation","cat":"EQUITY","ex":"Groww NSE","idx":56},{"s":"IOC.NS","n":"Indian Oil Corporation","cat":"EQUITY","ex":"Groww NSE","idx":57},{"s":"HEROMOTOCO.NS","n":"Hero MotoCorp Limited","cat":"EQUITY","ex":"Groww NSE","idx":58},{"s":"EICHERMOT.NS","n":"Eicher Motors Limited","cat":"EQUITY","ex":"Groww NSE","idx":59},{"s":"DIVISLAB.NS","n":"Divis Laboratories Limited","cat":"EQUITY","ex":"Groww NSE","idx":60},{"s":"CIPLA.NS","n":"Cipla Limited","cat":"EQUITY","ex":"Groww NSE","idx":61},{"s":"DRREDDY.NS","n":"Dr Reddys Laboratories","cat":"EQUITY","ex":"Groww NSE","idx":62},{"s":"APOLLOHOSP.NS","n":"Apollo Hospitals Enterprise","cat":"EQUITY","ex":"Groww NSE","idx":63},{"s":"TATACONSUM.NS","n":"Tata Consumer Products","cat":"EQUITY","ex":"Groww NSE","idx":64},{"s":"BRITANNIA.NS","n":"Britannia Industries","cat":"EQUITY","ex":"Groww NSE","idx":65},{"s":"INDUSINDBK.NS","n":"IndusInd Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":66},{"s":"HAVELLS.NS","n":"Havells India Limited","cat":"EQUITY","ex":"Groww NSE","idx":67},{"s":"ZOMATO.NS","n":"Zomato Limited (Blinkit)","cat":"EQUITY","ex":"Groww NSE","idx":68},{"s":"JIOFIN.NS","n":"Jio Financial Services Limited","cat":"EQUITY","ex":"Groww NSE","idx":69},{"s":"TRENT.NS","n":"Trent Limited (Westside / Zudio)","cat":"EQUITY","ex":"Groww NSE","idx":70},{"s":"BEL.NS","n":"Bharat Electronics Limited","cat":"EQUITY","ex":"Groww NSE","idx":71},{"s":"HAL.NS","n":"Hindustan Aeronautics Limited","cat":"EQUITY","ex":"Groww NSE","idx":72},{"s":"TATAPOWER.NS","n":"Tata Power Company Limited","cat":"EQUITY","ex":"Groww NSE","idx":73},{"s":"VEDL.NS","n":"Vedanta Limited","cat":"EQUITY","ex":"Groww NSE","idx":74},{"s":"SUZLON.NS","n":"Suzlon Energy Limited","cat":"EQUITY","ex":"Groww NSE","idx":75},{"s":"DLF.NS","n":"DLF Limited","cat":"EQUITY","ex":"Groww NSE","idx":76},{"s":"IRCTC.NS","n":"Indian Railway Catering & Tourism","cat":"EQUITY","ex":"Groww NSE","idx":77},{"s":"IRFC.NS","n":"Indian Railway Finance Corporation","cat":"EQUITY","ex":"Groww NSE","idx":78},{"s":"RVNL.NS","n":"Rail Vikas Nigam Limited","cat":"EQUITY","ex":"Groww NSE","idx":79},{"s":"RECLTD.NS","n":"REC Limited","cat":"EQUITY","ex":"Groww NSE","idx":80},{"s":"PFC.NS","n":"Power Finance Corporation","cat":"EQUITY","ex":"Groww NSE","idx":81},{"s":"BSE.NS","n":"BSE Limited (Exchange)","cat":"EQUITY","ex":"Groww NSE","idx":82},{"s":"CDSL.NS","n":"Central Depository Services (CDSL)","cat":"EQUITY","ex":"Groww NSE","idx":83},{"s":"ANGELONE.NS","n":"Angel One Limited","cat":"EQUITY","ex":"Groww NSE","idx":84},{"s":"YESBANK.NS","n":"Yes Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":85},{"s":"IDEA.NS","n":"Vodafone Idea Limited","cat":"EQUITY","ex":"Groww NSE","idx":86},{"s":"PAYTM.NS","n":"One 97 Communications (Paytm)","cat":"EQUITY","ex":"Groww NSE","idx":87},{"s":"POLICYBZR.NS","n":"PB Fintech (Policybazaar)","cat":"EQUITY","ex":"Groww NSE","idx":88},{"s":"NYKAA.NS","n":"FSN E-Commerce Ventures (Nykaa)","cat":"EQUITY","ex":"Groww NSE","idx":89},{"s":"PIDILITIND.NS","n":"Pidilite Industries (Fevicol)","cat":"EQUITY","ex":"Groww NSE","idx":90},{"s":"BERGEPAINT.NS","n":"Berger Paints India","cat":"EQUITY","ex":"Groww NSE","idx":91},{"s":"SIEMENS.NS","n":"Siemens Limited India","cat":"EQUITY","ex":"Groww NSE","idx":92},{"s":"ABB.NS","n":"ABB India Limited","cat":"EQUITY","ex":"Groww NSE","idx":93},{"s":"INDIGO.NS","n":"InterGlobe Aviation (IndiGo)","cat":"EQUITY","ex":"Groww NSE","idx":94},{"s":"POLYCAB.NS","n":"Polycab India Limited","cat":"EQUITY","ex":"Groww NSE","idx":95},{"s":"CHOLAFIN.NS","n":"Cholamandalam Investment & Finance","cat":"EQUITY","ex":"Groww NSE","idx":96},{"s":"SHRIRAMFIN.NS","n":"Shriram Finance Limited","cat":"EQUITY","ex":"Groww NSE","idx":97},{"s":"MUTHOOTFIN.NS","n":"Muthoot Finance Limited","cat":"EQUITY","ex":"Groww NSE","idx":98},{"s":"MAZDOCK.NS","n":"Mazagon Dock Shipbuilders","cat":"EQUITY","ex":"Groww NSE","idx":99},{"s":"COCHINSHIP.NS","n":"Cochin Shipyard Limited","cat":"EQUITY","ex":"Groww NSE","idx":100},{"s":"BHEL.NS","n":"Bharat Heavy Electricals Limited","cat":"EQUITY","ex":"Groww NSE","idx":101},{"s":"FEDERALBNK.NS","n":"Federal Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":102},{"s":"IDFCFIRSTB.NS","n":"IDFC FIRST Bank Limited","cat":"EQUITY","ex":"Groww NSE","idx":103},{"s":"PNB.NS","n":"Punjab National Bank","cat":"EQUITY","ex":"Groww NSE","idx":104},{"s":"BANKBARODA.NS","n":"Bank of Baroda","cat":"EQUITY","ex":"Groww NSE","idx":105},{"s":"CANBK.NS","n":"Canara Bank","cat":"EQUITY","ex":"Groww NSE","idx":106},{"s":"UNIONBANK.NS","n":"Union Bank of India","cat":"EQUITY","ex":"Groww NSE","idx":107},{"s":"ASHOKLEY.NS","n":"Ashok Leyland Limited","cat":"EQUITY","ex":"Groww NSE","idx":108},{"s":"TVSMOTOR.NS","n":"TVS Motor Company Limited","cat":"EQUITY","ex":"Groww NSE","idx":109},{"s":"BAJAJ-AUTO.NS","n":"Bajaj Auto Limited","cat":"EQUITY","ex":"Groww NSE","idx":110},{"s":"CUMMINSIND.NS","n":"Cummins India Limited","cat":"EQUITY","ex":"Groww NSE","idx":111},{"s":"TATATECH.NS","n":"Tata Technologies Limited","cat":"EQUITY","ex":"Groww NSE","idx":112},{"s":"PERSISTENT.NS","n":"Persistent Systems Limited","cat":"EQUITY","ex":"Groww NSE","idx":113},{"s":"LTIM.NS","n":"LTIMindtree Limited","cat":"EQUITY","ex":"Groww NSE","idx":114},{"s":"COFORGE.NS","n":"Coforge Limited","cat":"EQUITY","ex":"Groww NSE","idx":115},{"s":"MPHASIS.NS","n":"Mphasis Limited","cat":"EQUITY","ex":"Groww NSE","idx":116},{"s":"KPITTECH.NS","n":"KPIT Technologies Limited","cat":"EQUITY","ex":"Groww NSE","idx":117},{"s":"TATAELXSI.NS","n":"Tata Elxsi Limited","cat":"EQUITY","ex":"Groww NSE","idx":118},{"s":"DIXON.NS","n":"Dixon Technologies India","cat":"EQUITY","ex":"Groww NSE","idx":119},{"s":"AMBER.NS","n":"Amber Enterprises India","cat":"EQUITY","ex":"Groww NSE","idx":120},{"s":"KAYNES.NS","n":"Kaynes Technology India","cat":"EQUITY","ex":"Groww NSE","idx":121},{"s":"TATACHEM.NS","n":"Tata Chemicals Limited","cat":"EQUITY","ex":"Groww NSE","idx":122},{"s":"DEEPAKNTR.NS","n":"Deepak Nitrite Limited","cat":"EQUITY","ex":"Groww NSE","idx":123},{"s":"FLUOROCHEM.NS","n":"Gujarat Fluorochemicals","cat":"EQUITY","ex":"Groww NSE","idx":124},{"s":"AARTIIND.NS","n":"Aarti Industries Limited","cat":"EQUITY","ex":"Groww NSE","idx":125},{"s":"PIIND.NS","n":"PI Industries Limited","cat":"EQUITY","ex":"Groww NSE","idx":126},{"s":"UPL.NS","n":"UPL Limited","cat":"EQUITY","ex":"Groww NSE","idx":127},{"s":"SRF.NS","n":"SRF Limited","cat":"EQUITY","ex":"Groww NSE","idx":128},{"s":"JUBLFOOD.NS","n":"Jubilant FoodWorks (Domino\\'s)","cat":"EQUITY","ex":"Groww NSE","idx":129},{"s":"DEVYANI.NS","n":"Devyani International (KFC / Pizza Hut)","cat":"EQUITY","ex":"Groww NSE","idx":130},{"s":"VBL.NS","n":"Varun Beverages Limited (Pepsi)","cat":"EQUITY","ex":"Groww NSE","idx":131},{"s":"RADICO.NS","n":"Radico Khaitan Limited","cat":"EQUITY","ex":"Groww NSE","idx":132},{"s":"MCDOWELL-N.NS","n":"United Spirits Limited (Diageo)","cat":"EQUITY","ex":"Groww NSE","idx":133},{"s":"PVRINOX.NS","n":"PVR INOX Limited","cat":"EQUITY","ex":"Groww NSE","idx":134},{"s":"GODREJPROP.NS","n":"Godrej Properties Limited","cat":"EQUITY","ex":"Groww NSE","idx":135},{"s":"PRESTIGE.NS","n":"Prestige Estates Projects","cat":"EQUITY","ex":"Groww NSE","idx":136},{"s":"OBEROIRLTY.NS","n":"Oberoi Realty Limited","cat":"EQUITY","ex":"Groww NSE","idx":137},{"s":"LODHA.NS","n":"Macrotech Developers (Lodha)","cat":"EQUITY","ex":"Groww NSE","idx":138},{"s":"PHOENIXLTD.NS","n":"The Phoenix Mills Limited","cat":"EQUITY","ex":"Groww NSE","idx":139},{"s":"GMRINFRA.NS","n":"GMR Airports Infrastructure","cat":"EQUITY","ex":"Groww NSE","idx":140},{"s":"MANKIND.NS","n":"Mankind Pharma Limited","cat":"EQUITY","ex":"Groww NSE","idx":141},{"s":"TORNTPHARM.NS","n":"Torrent Pharmaceuticals","cat":"EQUITY","ex":"Groww NSE","idx":142},{"s":"LUPIN.NS","n":"Lupin Limited","cat":"EQUITY","ex":"Groww NSE","idx":143},{"s":"ALKEM.NS","n":"Alkem Laboratories Limited","cat":"EQUITY","ex":"Groww NSE","idx":144},{"s":"AUROPHARMA.NS","n":"Aurobindo Pharma Limited","cat":"EQUITY","ex":"Groww NSE","idx":145},{"s":"BIOCON.NS","n":"Biocon Limited","cat":"EQUITY","ex":"Groww NSE","idx":146},{"s":"GLENMARK.NS","n":"Glenmark Pharmaceuticals","cat":"EQUITY","ex":"Groww NSE","idx":147},{"s":"MAXHEALTH.NS","n":"Max Healthcare Institute","cat":"EQUITY","ex":"Groww NSE","idx":148},{"s":"FORTIS.NS","n":"Fortis Healthcare Limited","cat":"EQUITY","ex":"Groww NSE","idx":149},{"s":"LALPATHLAB.NS","n":"Dr. Lal PathLabs Limited","cat":"EQUITY","ex":"Groww NSE","idx":150},{"s":"SAIL.NS","n":"Steel Authority of India (SAIL)","cat":"EQUITY","ex":"Groww NSE","idx":151},{"s":"NMDC.NS","n":"NMDC Limited","cat":"EQUITY","ex":"Groww NSE","idx":152},{"s":"NATIONALUM.NS","n":"National Aluminium (NALCO)","cat":"EQUITY","ex":"Groww NSE","idx":153},{"s":"HINDCOPPER.NS","n":"Hindustan Copper Limited","cat":"EQUITY","ex":"Groww NSE","idx":154},{"s":"JINDALSTEL.NS","n":"Jindal Steel & Power","cat":"EQUITY","ex":"Groww NSE","idx":155},{"s":"CONCOR.NS","n":"Container Corporation of India","cat":"EQUITY","ex":"Groww NSE","idx":156},{"s":"EXIDEIND.NS","n":"Exide Industries Limited","cat":"EQUITY","ex":"Groww NSE","idx":157},{"s":"ARE&M.NS","n":"Amara Raja Energy & Mobility","cat":"EQUITY","ex":"Groww NSE","idx":158},{"s":"ESCORTS.NS","n":"Escorts Kubota Limited","cat":"EQUITY","ex":"Groww NSE","idx":159},{"s":"BOSCHLTD.NS","n":"Bosch Limited India","cat":"EQUITY","ex":"Groww NSE","idx":160},{"s":"MOTHERSON.NS","n":"Samvardhana Motherson International","cat":"EQUITY","ex":"Groww NSE","idx":161},{"s":"BHARATFORG.NS","n":"Bharat Forge Limited","cat":"EQUITY","ex":"Groww NSE","idx":162},{"s":"CGPOWER.NS","n":"CG Power and Industrial Solutions","cat":"EQUITY","ex":"Groww NSE","idx":163},{"s":"BSOFT.NS","n":"Birlasoft Limited","cat":"EQUITY","ex":"Groww NSE","idx":164},{"s":"OFSS.NS","n":"Oracle Financial Services Software","cat":"EQUITY","ex":"Groww NSE","idx":165},{"s":"TORNTPOWER.NS","n":"Torrent Power Limited","cat":"EQUITY","ex":"Groww NSE","idx":166},{"s":"SJVN.NS","n":"SJVN Limited","cat":"EQUITY","ex":"Groww NSE","idx":167},{"s":"NHPC.NS","n":"NHPC Limited","cat":"EQUITY","ex":"Groww NSE","idx":168},{"s":"OIL.NS","n":"Oil India Limited","cat":"EQUITY","ex":"Groww NSE","idx":169},{"s":"HINDPETRO.NS","n":"Hindustan Petroleum (HPCL)","cat":"EQUITY","ex":"Groww NSE","idx":170},{"s":"PETRONET.NS","n":"Petronet LNG Limited","cat":"EQUITY","ex":"Groww NSE","idx":171},{"s":"IGL.NS","n":"Indraprastha Gas Limited","cat":"EQUITY","ex":"Groww NSE","idx":172},{"s":"MGL.NS","n":"Mahanagar Gas Limited","cat":"EQUITY","ex":"Groww NSE","idx":173},{"s":"GUJGASLTD.NS","n":"Gujarat Gas Limited","cat":"EQUITY","ex":"Groww NSE","idx":174},{"s":"INDHOTEL.NS","n":"The Indian Hotels Company (Taj)","cat":"EQUITY","ex":"Groww NSE","idx":175},{"s":"DELHIVERY.NS","n":"Delhivery Limited","cat":"EQUITY","ex":"Groww NSE","idx":176},{"s":"^GSPC","n":"S&P 500 Index","cat":"INDEX","ex":"US Index","idx":177},{"s":"^IXIC","n":"NASDAQ Composite Index","cat":"INDEX","ex":"US Index","idx":178},{"s":"^DJI","n":"Dow Jones Industrial Average","cat":"INDEX","ex":"US Index","idx":179},{"s":"BTC-USD","n":"Bitcoin USD","cat":"CRYPTO","ex":"Crypto","idx":180},{"s":"ETH-USD","n":"Ethereum USD","cat":"CRYPTO","ex":"Crypto","idx":181},{"s":"SOL-USD","n":"Solana USD","cat":"CRYPTO","ex":"Crypto","idx":182}];
+    
+    let isRunning = false;
+    let allAssets = embeddedAssets;
+    let recentSearches = [];
+    let currentHistory = [];
+
+    // Load Assets Catalog from Server (with instant fallback to embedded)
+    async function loadAssets() {
+      try {
+        const res = await fetch('/api/assets');
+        if (res.ok) {
+          const remoteAssets = await res.json();
+          if (Array.isArray(remoteAssets) && remoteAssets.length > 0) {
+            allAssets = remoteAssets.map((a, i) => ({ ...a, idx: i }));
+          }
+        }
+      } catch (e) {
+        console.warn('Using embedded assets fallback:', e);
+      }
+      renderDropdown(document.getElementById('tickerInput').value || '');
+    }
+
+    // Dropdown Handling
+    function showDropdown() {
+      const dd = document.getElementById('assetsDropdown');
+      dd.classList.remove('hidden');
+      renderDropdown(document.getElementById('tickerInput').value);
+    }
+
+    function hideDropdown() {
+      setTimeout(() => {
+        const dd = document.getElementById('assetsDropdown');
+        if (dd) dd.classList.add('hidden');
+      }, 250);
+    }
+
+    function handleSearchInput(val) {
+      showDropdown();
+      renderDropdown(val);
+      updateSelectedSubtitle(val);
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter') {
+        const dd = document.getElementById('assetsDropdown');
+        dd.classList.add('hidden');
+        runForecast();
+      } else if (e.key === 'Escape') {
+        const dd = document.getElementById('assetsDropdown');
+        dd.classList.add('hidden');
+      }
+    }
+
+    function updateSelectedSubtitle(val) {
+      const clean = (val || '').trim().toUpperCase();
+      const matched = allAssets.find(a => a.s === clean || a.n.toUpperCase() === clean);
+      if (matched) {
+        document.getElementById('selectedAssetName').textContent = matched.n + ' (' + matched.ex + ')';
+      } else {
+        document.getElementById('selectedAssetName').textContent = clean ? ('Custom Instrument: ' + clean) : '';
+      }
+    }
+
+    function renderDropdown(query) {
+      const q = (query || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const words = q ? q.split(' ') : [];
+      const listEl = document.getElementById('dropdownList');
+      if (!listEl) return;
+      
+      let filtered = allAssets;
+      if (words.length > 0) {
+        filtered = allAssets.filter(a => {
+          const text = (a.s + ' ' + a.n + ' ' + a.ex + ' ' + a.cat).toLowerCase();
+          return words.every(w => text.includes(w));
+        });
+      }
+      filtered = filtered.slice(0, 40);
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="p-2.5 text-xs text-slate-400">No catalog match for <strong class="text-white">' + query + '</strong>. Click Execute to analyze as custom ticker.</div>';
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(item => {
+        let badgeColor = 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+        if (item.cat === 'COMMODITY') badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        if (item.cat === 'INDEX') badgeColor = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+        if (item.cat === 'CRYPTO') badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+
+        return '<div onclick="selectAssetByIndex(' + item.idx + ')" class="p-2 rounded hover:bg-dark-800 cursor-pointer flex items-center justify-between border border-transparent hover:border-dark-700 transition">' +
+          '<div class="flex items-center space-x-2.5 overflow-hidden">' +
+            '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase font-semibold ' + badgeColor + '">' + item.ex + '</span>' +
+            '<span class="font-mono font-bold text-white text-xs">' + item.s + '</span>' +
+            '<span class="text-xs text-slate-400 truncate">' + item.n + '</span>' +
+          '</div>' +
+          '<i class="fa-solid fa-chevron-right text-slate-600 text-[10px]"></i>' +
+        '</div>';
+      }).join('');
+    }
+
+    function selectAssetByIndex(idx) {
+      const item = allAssets[idx];
+      if (!item) return;
+      const input = document.getElementById('tickerInput');
+      input.value = item.s;
+      document.getElementById('selectedAssetName').textContent = item.n + ' (' + item.ex + ')';
+      document.getElementById('assetsDropdown').classList.add('hidden');
+    }
+
+    function clearTicker(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const input = document.getElementById('tickerInput');
+      input.value = '';
+      document.getElementById('selectedAssetName').textContent = '';
+      showDropdown();
+      input.focus();
+    }
+
+    // Resolve Symbol: If user typed "Hexagon Nutrition" or "Crude Oil", resolve to exact ticker
+    function resolveSymbol(inputVal) {
+      const q = (inputVal || '').trim();
+      if (!q) return '';
+      
+      // Exact match on symbol
+      const exactSym = allAssets.find(a => a.s.toLowerCase() === q.toLowerCase());
+      if (exactSym) return exactSym.s;
+
+      // Exact match on name
+      const exactName = allAssets.find(a => a.n.toLowerCase() === q.toLowerCase());
+      if (exactName) return exactName.s;
+
+      // Partial words match
+      const words = q.toLowerCase().split(/\s+/);
+      const match = allAssets.find(a => {
+        const text = (a.s + ' ' + a.n).toLowerCase();
+        return words.every(w => text.includes(w));
+      });
+      if (match) return match.s;
+
+      // Fallback to upper string
+      return q.toUpperCase();
+    }
+
+    // Recent Searches Management (Last 5)
+    function initRecentSearches() {
+      try {
+        const stored = localStorage.getItem('kronos_recent_searches');
+        recentSearches = stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        recentSearches = [];
+      }
+      renderRecentSearches();
+    }
+
+    function saveRecentSearch(symbol) {
+      symbol = symbol.trim().toUpperCase();
+      if (!symbol) return;
+      recentSearches = recentSearches.filter(s => s !== symbol);
+      recentSearches.unshift(symbol);
+      recentSearches = recentSearches.slice(0, 5);
+      try {
+        localStorage.setItem('kronos_recent_searches', JSON.stringify(recentSearches));
+      } catch (e) {}
+      renderRecentSearches();
+    }
+
+    function clearRecentSearches() {
+      recentSearches = [];
+      localStorage.removeItem('kronos_recent_searches');
+      renderRecentSearches();
+    }
+
+    function selectRecentSearch(idx) {
+      const sym = recentSearches[idx];
+      if (sym) setTicker(sym);
+    }
+
+    function renderRecentSearches() {
+      const container = document.getElementById('recentSearchesContainer');
+      if (!container) return;
+      if (recentSearches.length === 0) {
+        container.innerHTML = '<span class="text-[11px] text-slate-500 italic py-0.5">Your recent 5 searches will appear here.</span>';
+        return;
+      }
+      container.innerHTML = recentSearches.map((sym, idx) => {
+        return '<button type="button" onclick="selectRecentSearch(' + idx + ')" class="px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 border border-dark-700 text-sky-300 font-mono text-xs flex items-center space-x-1.5 transition cursor-pointer">' +
+          '<i class="fa-solid fa-clock-rotate-left text-[9px] text-slate-400"></i>' +
+          '<span>' + sym + '</span>' +
+        '</button>';
+      }).join('');
+    }
+
+    function setTicker(sym) {
+      document.getElementById('tickerInput').value = sym;
+      const asset = allAssets.find(a => a.s === sym);
+      document.getElementById('selectedAssetName').textContent = asset ? (asset.n + ' (' + asset.ex + ')') : sym;
+      document.getElementById('assetsDropdown').classList.add('hidden');
+    }
+
+    // Realtime Activity Logs
+    function addLog(msg, type = "info") {
+      const consoleEl = document.getElementById('logConsole');
+      if (!consoleEl) return;
+      const timeStr = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = "flex items-start space-x-2";
+      div.innerHTML = '<span class="text-slate-500">[' + timeStr + ']</span> <span class="' + (type === 'error' ? 'text-rose-400 font-bold' : (type === 'complete' ? 'text-emerald-400 font-bold' : 'text-slate-200')) + '">' + msg + '</span>';
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearLogs() {
+      const el = document.getElementById('logConsole');
+      if (el) el.innerHTML = '';
+    }
+
+    function setProgress(pct, text) {
+      const wrapper = document.getElementById('progressWrapper');
+      if (!wrapper) return;
+      wrapper.classList.remove('hidden');
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressPct').textContent = pct + '%';
+      if (text) document.getElementById('progressText').textContent = text;
+    }
+
+    function setLoadingState(loading) {
+      isRunning = loading;
+      const btn = document.getElementById('runBtn');
+      const loader = document.getElementById('chartLoader');
+      if (loading) {
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i><span>Analyzing & Replaying...</span>';
+        loader.classList.remove('hidden');
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Execute Forecast & Replay</span>';
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Robust SSE Streaming Execution with REST Fallback
+    function runForecast() {
+      if (isRunning) return;
+      const rawInput = document.getElementById('tickerInput').value.trim();
+      if (!rawInput) {
+        alert('Please enter or select a stock or commodity.');
+        return;
+      }
+      
+      const ticker = resolveSymbol(rawInput);
+      document.getElementById('tickerInput').value = ticker;
+      updateSelectedSubtitle(ticker);
+
+      const timeframe = document.getElementById('timeframeSelect').value;
+      const model = document.getElementById('modelSelect').value;
+      const capital = parseFloat(document.getElementById('capitalInput').value) || 100000;
+      const risk_pct = parseFloat(document.getElementById('riskPctSelect').value) || 1.0;
+
+      setLoadingState(true);
+      clearLogs();
+      setProgress(10, 'Starting analysis for ' + ticker + '...');
+      addLog('Initiating request for ' + ticker + ' (Model: Kronos-' + model + ', Timeframe: ' + timeframe + ')...');
+
+      const params = new URLSearchParams({
+        ticker: ticker,
+        timeframe: timeframe,
+        model: model,
+        capital: capital,
+        risk_pct: risk_pct,
+        paths: 10
+      });
+
+      const sseUrl = '/api/forecast/stream?' + params.toString();
+      const eventSource = new EventSource(sseUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'log') {
+            addLog(msg.message);
+            if (msg.message.includes('Step 1')) setProgress(25, 'Ingesting candle data...');
+            else if (msg.message.includes('Step 2')) setProgress(45, 'Calculating ATR brackets & risk sizing...');
+            else if (msg.message.includes('Step 3')) setProgress(65, 'DayTrader TimeMachine: 10,000 Replays...');
+            else if (msg.message.includes('Step 4')) setProgress(85, 'Kronos-' + model + ' Transformer inference...');
+            else if (msg.message.includes('Rendering')) setProgress(95, 'Rendering high-resolution chart...');
+          } else if (msg.type === 'complete') {
+            setProgress(100, 'Forecast complete!');
+            renderResults(msg.data);
+            addLog('✅ Analysis, forecast, and 10,000 replays successfully finished!', 'complete');
+            saveRecentSearch(ticker);
+            setLoadingState(false);
+            eventSource.close();
+            fetchHistory();
+          } else if (msg.type === 'error') {
+            addLog('❌ Error: ' + msg.message, 'error');
+            alert('Forecast error: ' + msg.message);
+            setLoadingState(false);
+            eventSource.close();
+          }
+        } catch (err) {
+          console.error('SSE parse error:', err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn('SSE disconnected, falling back to direct REST POST...', err);
+        eventSource.close();
+        if (isRunning) {
+          addLog('Using direct pipeline fallback...', 'info');
+          fetch('/api/forecast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker, timeframe, model, capital, risk_pct, paths: 10 })
+          })
+          .then(res => {
+            if (!res.ok) throw new Error('Server returned ' + res.status);
+            return res.json();
+          })
+          .then(data => {
+            setProgress(100, 'Forecast complete!');
+            renderResults(data);
+            addLog('✅ Analysis complete via direct pipeline!', 'complete');
+            saveRecentSearch(ticker);
+            setLoadingState(false);
+            fetchHistory();
+          })
+          .catch(e => {
+            addLog('❌ Execution error: ' + e.message, 'error');
+            alert('Error: ' + e.message);
+            setLoadingState(false);
+          });
+        }
+      };
+    }
+
+    function renderResults(data) {
+      document.getElementById('chartTitle').textContent = data.ticker + ' — ' + data.model + ' Forecast';
+      document.getElementById('chartSubtitle').textContent = data.timeframe.toUpperCase() + ' horizon • Last Price: ' + data.last_price;
+      const priceBadge = document.getElementById('priceBadge');
+      priceBadge.textContent = 'Last: ' + data.last_price;
+      priceBadge.classList.remove('hidden');
+
+      const chartPlaceholder = document.getElementById('chartPlaceholder');
+      const chartImg = document.getElementById('chartImg');
+      chartPlaceholder.classList.add('hidden');
+      chartImg.src = data.chart_url + '?t=' + new Date().getTime();
+      chartImg.classList.remove('hidden');
+
+      const tm = data.timemachine;
+      document.getElementById('tmTargetPct').textContent = tm.target_first_pct + '%';
+      document.getElementById('tmStopPct').textContent = tm.stop_first_pct + '%';
+      document.getElementById('tmNeitherPct').textContent = tm.neither_pct + '%';
+      document.getElementById('tmExpectancy').textContent = (tm.expectancy_r > 0 ? '+' : '') + tm.expectancy_r + ' R';
+      document.getElementById('tmKelly').textContent = tm.kelly_pct + '%';
+      document.getElementById('tmVerdict').textContent = tm.verdict;
+
+      const b = data.brackets;
+      document.getElementById('planEntry').textContent = b.entry;
+      document.getElementById('planStop').textContent = b.stop_loss;
+      document.getElementById('planTarget2R').textContent = b.target_2r;
+      document.getElementById('planRiskAmount').textContent = b.max_risk_amount + ' (' + b.risk_pct + '%)';
+      document.getElementById('planShares').textContent = b.recommended_shares + ' units';
+      document.getElementById('planExposure').textContent = b.capital_exposure;
+
+      if (data.band && data.band.length > 0) {
+        const qCard = document.getElementById('quantilesCard');
+        const qBody = document.getElementById('quantilesTableBody');
+        qBody.innerHTML = data.band.slice(0, 10).map(row => {
+          return '<tr class="hover:bg-dark-800/40 transition">' +
+            '<td class="py-1.5 px-3 text-slate-300">' + row.timestamp + '</td>' +
+            '<td class="py-1.5 px-3 text-rose-400 font-bold">' + row['low_5%'] + '</td>' +
+            '<td class="py-1.5 px-3 text-sky-300 font-bold">' + row['likely_50%'] + '</td>' +
+            '<td class="py-1.5 px-3 text-emerald-400 font-bold">' + row['high_95%'] + '</td>' +
+          '</tr>';
+        }).join('');
+        qCard.classList.remove('hidden');
+      }
+    }
+
+    // History Drawer
+    function toggleHistoryDrawer() {
+      const drawer = document.getElementById('historyDrawer');
+      drawer.classList.toggle('translate-x-full');
+      if (!drawer.classList.contains('translate-x-full')) {
+        fetchHistory();
+      }
+    }
+
+    async function fetchHistory() {
+      try {
+        const res = await fetch('/api/history');
+        currentHistory = await res.json();
+        document.getElementById('historyBadge').textContent = currentHistory.length;
+        const listEl = document.getElementById('historyList');
+        if (currentHistory.length === 0) {
+          listEl.innerHTML = '<div class="text-slate-500 text-center py-8">No past forecasts found.</div>';
+          return;
+        }
+        listEl.innerHTML = currentHistory.map((item, idx) => {
+          return '<div onclick="loadPastForecastByIndex(' + idx + ')" class="p-3 rounded-lg bg-dark-950 hover:bg-dark-800 border border-dark-800 hover:border-sky-500/40 cursor-pointer transition space-y-1.5">' +
+            '<div class="flex items-center justify-between">' +
+              '<span class="font-bold text-white font-mono">' + item.ticker + '</span>' +
+              '<span class="text-[10px] text-slate-400 uppercase">' + item.timeframe + '</span>' +
+            '</div>' +
+            '<div class="flex items-center justify-between text-[11px]">' +
+              '<span class="text-slate-400">Price: <span class="font-mono text-white">' + item.last_price + '</span></span>' +
+              '<span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 font-mono">' + item.model + '</span>' +
+            '</div>' +
+            '<div class="text-[10px] text-slate-500 pt-1 border-t border-dark-800">' + item.timestamp + '</div>' +
+          '</div>';
+        }).join('');
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
+    }
+
+    function loadPastForecastByIndex(idx) {
+      const item = currentHistory[idx];
+      if (item) loadPastForecast(item.job_id);
+    }
+
+    async function loadPastForecast(jobId) {
+      try {
+        const res = await fetch('/api/history/' + jobId);
+        const data = await res.json();
+        renderResults(data);
+        toggleHistoryDrawer();
+        addLog('Loaded historical forecast for ' + data.ticker + ' (' + data.timestamp + ')', 'info');
+      } catch (err) {
+        alert('Could not load forecast: ' + err.message);
+      }
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('searchBoxContainer');
+      if (container && !container.contains(e.target)) {
+        document.getElementById('assetsDropdown').classList.add('hidden');
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAssets();
+      initRecentSearches();
+      fetchHistory();
+    });
+  </script>
+</body>
+</html>
