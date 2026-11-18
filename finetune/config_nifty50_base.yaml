@@ -1,0 +1,48 @@
+data:
+  data_path: "data/nifty50_daily.csv"
+  lookback_window: 120
+  predict_window: 20
+  max_context: 512
+  clip: 5.0
+  train_ratio: 0.85
+  val_ratio: 0.15
+  test_ratio: 0.0
+
+training:
+  tokenizer_epochs: 5
+  basemodel_epochs: 5
+  batch_size: 8
+  log_interval: 10
+  num_workers: 2
+  seed: 42
+  
+  tokenizer_learning_rate: 0.0001
+  predictor_learning_rate: 0.000005
+  
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_weight_decay: 0.05
+  accumulation_steps: 2
+
+model_paths:
+  pretrained_tokenizer: "NeoQuasar/Kronos-Tokenizer-base"
+  pretrained_predictor: "NeoQuasar/Kronos-base"
+  
+  exp_name: "nifty50_base_v1"
+  base_path: "finetuned"
+  base_save_path: ""
+  finetuned_tokenizer: ""
+  tokenizer_save_name: "tokenizer"
+  basemodel_save_name: "basemodel"
+
+experiment:
+  name: "kronos_nifty50_base_finetune"
+  description: "Kronos-base (102M) domain fine-tuning on NIFTY 50 Indian Market Index"
+  use_comet: false
+  train_tokenizer: true
+  train_basemodel: true
+  skip_existing: false
+
+device:
+  use_cuda: false
+  device_id: 0

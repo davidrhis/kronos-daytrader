@@ -51,6 +51,10 @@ Includes a modern, responsive web dashboard with real-time Server-Sent Events (S
      python scripts/sync_groww_instruments.py
      ```
 
+5. **Indian Market Domain Fine-Tuning:**
+   - Tools to download multi-year daily candlestick data for Indian benchmarks (NIFTY 50, Bank Nifty, bluechips).
+   - Fine-tunes both the discrete VQ-VAE tokenizer and autoregressive transformer predictor for local volatility regimes.
+
 ---
 
 ## Quickstart (Linux / Cloud VM)
