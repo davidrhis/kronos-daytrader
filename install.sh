@@ -43,6 +43,12 @@ Kronos.from_pretrained('NeoQuasar/Kronos-small')
 print('Models successfully pre-cached!')
 "
 
+# Sync Groww instrument catalog if missing
+if [ ! -f "static/assets.json" ]; then
+    echo "Syncing official Groww instrument master catalog..."
+    python3 scripts/sync_groww_instruments.py
+fi
+
 echo "=========================================================="
 echo "Installation complete!"
 echo "Run 'bash start.sh' to launch the dashboard on port 8080."

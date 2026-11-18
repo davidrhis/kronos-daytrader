@@ -2,7 +2,7 @@
 
 An open-source, full-stack financial market forecasting and risk intelligence system. It combines the **Kronos Financial Foundation Model** (transformer-based autoregressive time-series foundation model) with **DayTrader Intelligence** (10,000 Monte Carlo bootstrap session replays, 14-period ATR brackets, and Kelly Criterion position sizing).
 
-Includes a modern, responsive web dashboard with real-time Server-Sent Events (SSE) streaming, dark mode UI, and an embedded searchable catalog of 180+ global and Indian market instruments (NSE, BSE, MCX Commodities, Global Indices, Crypto).
+Includes a modern, responsive web dashboard with real-time Server-Sent Events (SSE) streaming, dark mode UI, and complete coverage of 3,500+ Indian equities, F&O underlyings, MCX commodities, and benchmark indices synchronized directly from Groww's official master contracts.
 
 ---
 
@@ -39,9 +39,17 @@ Includes a modern, responsive web dashboard with real-time Server-Sent Events (S
    - **R-Multiple Position Sizing:** Automatically calculates recommended unit sizing and total capital exposure based on your account capital and risk tolerance.
 
 3. **Real-Time Web Dashboard:**
-   - **Live Instrument Search:** Search by symbol or company name across 180+ instruments (NIFTY 50, Bank Nifty, MCX Crude Oil, Natural Gas, Gold, Silver, top equities).
+   - **Groww & Global Market Search:** Instant autocomplete search across 3,500+ NSE Cash stocks, F&O derivatives, MCX commodities, and benchmark indices.
    - **Live Activity Feed:** Step-by-step progress streaming via Server-Sent Events with automatic keep-alive.
    - **Forecast History:** Slide-over drawer tracking past analyses with instant recall.
+
+4. **Groww Instrument Master Synchronizer:**
+   - Synchronizes directly with Groww's official daily contract master (`instrument.csv`).
+   - Requires zero user API keys or private credentials.
+   - To update the instruments list at any time, run:
+     ```bash
+     python scripts/sync_groww_instruments.py
+     ```
 
 ---
 
@@ -109,9 +117,11 @@ kronos-daytrader/
 │   ├── __init__.py
 │   ├── kronos.py
 │   └── module.py
+├── scripts/              # Data synchronization scripts
+│   └── sync_groww_instruments.py  # Groww master instrument synchronization
 ├── static/               # Frontend assets
 │   ├── index.html        # Single-page dashboard UI
-│   ├── assets.json       # Search catalog of 180+ tradeable instruments
+│   ├── assets.json       # Search catalog of 3,500+ tradeable instruments
 │   └── charts/           # Output directory for generated chart plots
 ├── history/              # Local storage for saved historical forecasts
 ├── requirements.txt      # Python package requirements

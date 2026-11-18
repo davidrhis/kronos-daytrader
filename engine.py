@@ -15,8 +15,10 @@ import torch
 import torch.nn.functional as F
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+for p in [CURRENT_DIR, PARENT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from model.kronos import Kronos, KronosTokenizer, KronosPredictor, sample_from_logits, calc_time_stamps
 
@@ -286,6 +288,14 @@ def run_full_analysis(ticker, timeframe="daily", model_name="small", capital=100
     
     logger(f"📡 Step 1/4: Ingesting candles for {clean_ticker} ({interval} interval)...")
     raw = yf.download(clean_ticker, period=period, interval=interval, progress=False, auto_adjust=False)
+    if (raw.empty or len(raw) < 5) and not any(ch in clean_ticker for ch in [".", "^", "=", "-", "/"]):
+        alt_ticker = f"{clean_ticker}.NS"
+        logger(f"ℹ️ Retrying with National Stock Exchange symbol '{alt_ticker}'...")
+        alt_raw = yf.download(alt_ticker, period=period, interval=interval, progress=False, auto_adjust=False)
+        if not alt_raw.empty and len(alt_raw) >= 5:
+            raw = alt_raw
+            clean_ticker = alt_ticker
+
     if raw.empty:
         raise ValueError(f"No market data returned for '{clean_ticker}'. For Indian stocks, ensure '.NS' is appended (e.g. RELIANCE.NS, HEXAGON.NS, ^NSEI).")
         

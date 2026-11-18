@@ -88,6 +88,8 @@ async def search_market(q: str = Query(...)):
         text = f"{a.get('s','')} {a.get('n','')} {a.get('ex','')} {a.get('cat','')}".lower()
         if all(w in text for w in words):
             results.append(a)
+            if len(results) >= 35:
+                break
 
     # 2. Live online lookup via Yahoo Finance search if needed
     if len(results) < 5 and len(clean_q) >= 2:
