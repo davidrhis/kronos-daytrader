@@ -50,8 +50,13 @@
     <div class="flex items-center space-x-3">
       <div class="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-400 bg-dark-950 px-3 py-1.5 rounded-lg border border-dark-800">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>AI Inference Engine</span>
+        <span>AI Engine Active</span>
       </div>
+      <button type="button" onclick="toggleAutoDrawer()" class="px-3 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/80 text-xs font-medium text-indigo-300 border border-indigo-700/50 flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+        <i class="fa-solid fa-robot text-indigo-400"></i>
+        <span>Auto-Trader</span>
+        <span id="autoTradesBadge" class="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">0</span>
+      </button>
       <button type="button" onclick="toggleHistoryDrawer()" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-xs font-medium text-slate-200 border border-dark-700 flex items-center space-x-1.5 transition cursor-pointer">
         <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
         <span>History</span>
@@ -358,6 +363,44 @@
     </div>
     <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
       <div class="text-slate-500 text-center py-8">No past forecasts found.</div>
+    </div>
+  </div>
+
+  <!-- Auto-Trader Slide-over Drawer -->
+  <div id="autoDrawer" class="fixed inset-y-0 right-0 w-80 md:w-96 bg-dark-900 border-l border-dark-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    <div class="p-4 border-b border-dark-800 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-robot text-indigo-400"></i>
+        <h3 class="text-sm font-bold text-white">Auto-Trader Engine</h3>
+      </div>
+      <button type="button" onclick="toggleAutoDrawer()" class="text-slate-400 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="p-4 border-b border-dark-800 space-y-3 bg-dark-950/60">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400">Execution Mode:</span>
+        <span id="autoModeBadge" class="font-mono px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Paper Trading (Dry Run)</span>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400">Today's Executed Trades:</span>
+        <span id="autoTradesCount" class="font-mono text-white font-semibold">0 / 3</span>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400">Groww Credentials:</span>
+        <span id="autoKeysBadge" class="font-mono text-[11px] text-slate-300">Headless TOTP Ready</span>
+      </div>
+      <button type="button" id="triggerScanBtn" onclick="triggerAutoScan()" class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer shadow-md">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Trigger Watchlist Scan Now</span>
+      </button>
+    </div>
+    <div class="p-3 border-b border-dark-800 text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center justify-between">
+      <span>Automated Executions</span>
+      <span class="text-[10px] text-slate-500">Live & Paper</span>
+    </div>
+    <div id="autoTradesList" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
+      <div class="text-slate-500 text-center py-8">No automated trades recorded yet.</div>
     </div>
   </div>
 
@@ -831,6 +874,81 @@
       }
     }
 
+    // Auto-Trader Drawer & Handlers
+    function toggleAutoDrawer() {
+      const drawer = document.getElementById('autoDrawer');
+      drawer.classList.toggle('translate-x-full');
+      if (!drawer.classList.contains('translate-x-full')) {
+        fetchAutoStatus();
+        fetchAutoTrades();
+      }
+    }
+
+    async function fetchAutoStatus() {
+      try {
+        const res = await fetch('/api/auto/status');
+        const data = await res.json();
+        if (data.dry_run !== undefined) {
+          document.getElementById('autoModeBadge').textContent = data.dry_run ? 'Paper Trading (Dry Run)' : 'Live Broker Orders (Groww)';
+          document.getElementById('autoTradesCount').textContent = data.trades_today + ' / ' + data.max_trades_per_day;
+          document.getElementById('autoKeysBadge').textContent = data.has_groww_keys ? 'Configured (Active)' : 'Paper Simulation';
+        }
+      } catch (e) {
+        console.warn('Auto status error:', e);
+      }
+    }
+
+    async function fetchAutoTrades() {
+      try {
+        const res = await fetch('/api/auto/trades');
+        const trades = await res.json();
+        document.getElementById('autoTradesBadge').textContent = trades.length;
+        const listEl = document.getElementById('autoTradesList');
+        if (!Array.isArray(trades) || trades.length === 0) {
+          listEl.innerHTML = '<div class="text-slate-500 text-center py-8">No automated trades recorded yet.</div>';
+          return;
+        }
+        listEl.innerHTML = trades.map(t => {
+          let badgeColor = (t.mode && t.mode.includes('LIVE')) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+          return '<div class="p-3 rounded-lg bg-dark-950 border border-dark-800 space-y-2">' +
+            '<div class="flex items-center justify-between">' +
+              '<span class="font-bold text-white font-mono">' + t.trading_symbol + '</span>' +
+              '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase ' + badgeColor + '">' + t.mode + '</span>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-1 text-[11px] font-mono bg-dark-900 p-1.5 rounded">' +
+              '<div><span class="text-slate-500 text-[9px] block">QTY</span>' + t.quantity + '</div>' +
+              '<div><span class="text-slate-500 text-[9px] block">ENTRY</span>₹' + t.entry_price + '</div>' +
+              '<div><span class="text-slate-500 text-[9px] block">TARGET</span>₹' + t.target + '</div>' +
+            '</div>' +
+            '<div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-dark-800">' +
+              '<span>Expectancy: <strong class="text-emerald-400 font-mono">+' + (t.expectancy_r || 0) + 'R</strong></span>' +
+              '<span>' + t.timestamp + '</span>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } catch (e) {
+        console.warn('Auto trades error:', e);
+      }
+    }
+
+    async function triggerAutoScan() {
+      const btn = document.getElementById('triggerScanBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Scanning Watchlist & Computing...</span>';
+      try {
+        const res = await fetch('/api/auto/scan', { method: 'POST' });
+        const result = await res.json();
+        alert('Autonomous Scan Completed! Scanned ' + result.scanned + ' assets. Executed ' + result.qualified + ' trades.');
+        fetchAutoStatus();
+        fetchAutoTrades();
+      } catch (err) {
+        alert('Scan error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Trigger Watchlist Scan Now</span>';
+      }
+    }
+
     // Close dropdown on click outside
     document.addEventListener('click', (e) => {
       const container = document.getElementById('searchBoxContainer');
@@ -843,6 +961,7 @@
       loadAssets();
       initRecentSearches();
       fetchHistory();
+      fetchAutoStatus();
     });
   </script>
 </body>

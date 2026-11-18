@@ -55,6 +55,13 @@ Includes a modern, responsive web dashboard with real-time Server-Sent Events (S
    - Tools to download multi-year daily candlestick data for Indian benchmarks (NIFTY 50, Bank Nifty, bluechips).
    - Fine-tunes both the discrete VQ-VAE tokenizer and autoregressive transformer predictor for local volatility regimes.
 
+6. **Autonomous Market Scanner & Groww Execution Bridge (`auto_trader.py`):**
+   - Headless automated daily authentication via Groww TOTP (`pyotp.TOTP`).
+   - Automatically runs morning scans at 9:20 AM IST across your configured watchlist.
+   - Filters setups for positive mathematical expectancy ($E \ge +0.35R$) and odds ($\ge 52\%$).
+   - Computes dynamic 14-period ATR bracket stops and targets, placing broker or paper orders automatically.
+   - Circuit breakers: Configurable daily trade limit, max risk per trade, and paper trading (`DRY_RUN=true`) safety mode.
+
 ---
 
 ## Quickstart (Linux / Cloud VM)

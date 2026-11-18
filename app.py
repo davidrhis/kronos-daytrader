@@ -232,6 +232,55 @@ async def api_forecast_stream(
     }
     return StreamingResponse(event_generator(), headers=headers)
 
+# Autonomous Trading & Groww Execution Endpoints
+try:
+    from auto_trader import AutoTrader
+    auto_trader_engine = AutoTrader()
+except Exception as e:
+    auto_trader_engine = None
+
+@app.get("/api/auto/status")
+async def get_auto_status():
+    if not auto_trader_engine:
+        return {"status": "UNAVAILABLE"}
+    auto_trader_engine._load_config()
+    status_file = os.path.join(CURRENT_DIR, "history", "auto_status.json")
+    last_status = {}
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, "r", encoding="utf-8") as f:
+                last_status = json.load(f)
+        except Exception:
+            pass
+            
+    return {
+        "enabled": auto_trader_engine.enabled,
+        "dry_run": auto_trader_engine.dry_run,
+        "has_groww_keys": bool(auto_trader_engine.auth.api_key or auto_trader_engine.auth.access_token),
+        "capital": auto_trader_engine.capital,
+        "risk_pct": auto_trader_engine.risk_pct,
+        "min_expectancy": auto_trader_engine.min_expectancy,
+        "min_target_pct": auto_trader_engine.min_target_pct,
+        "max_trades_per_day": auto_trader_engine.max_trades_per_day,
+        "trades_today": auto_trader_engine.get_today_trades_count(),
+        "watchlist": auto_trader_engine.watchlist,
+        "last_scan": last_status
+    }
+
+@app.get("/api/auto/trades")
+async def get_auto_trades():
+    if not auto_trader_engine:
+        return []
+    return auto_trader_engine.load_trades()
+
+@app.post("/api/auto/scan")
+async def trigger_auto_scan():
+    if not auto_trader_engine:
+        raise HTTPException(status_code=500, detail="AutoTrader engine not loaded")
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, auto_trader_engine.run_scan)
+    return result
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8080, log_level="info")
