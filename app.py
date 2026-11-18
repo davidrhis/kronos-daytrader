@@ -67,6 +67,62 @@ async def get_assets():
             return json.load(f)
     return []
 
+@app.get("/api/search")
+async def search_market(q: str = Query(...)):
+    clean_q = q.strip()
+    if not clean_q:
+        return []
+
+    # 1. Local catalog matching
+    results = []
+    words = clean_q.lower().split()
+    assets = []
+    if os.path.exists(ASSETS_FILE):
+        try:
+            with open(ASSETS_FILE, "r", encoding="utf-8") as f:
+                assets = json.load(f)
+        except Exception:
+            pass
+
+    for a in assets:
+        text = f"{a.get('s','')} {a.get('n','')} {a.get('ex','')} {a.get('cat','')}".lower()
+        if all(w in text for w in words):
+            results.append(a)
+
+    # 2. Live online lookup via Yahoo Finance search if needed
+    if len(results) < 5 and len(clean_q) >= 2:
+        try:
+            loop = asyncio.get_event_loop()
+            def fetch_yahoo(query_str):
+                import urllib.request, urllib.parse
+                url = f"https://query1.finance.yahoo.com/v1/finance/search?q={urllib.parse.quote(query_str)}&quotesCount=8&newsCount=0"
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=2.5) as resp:
+                    if resp.status == 200:
+                        return json.loads(resp.read().decode("utf-8"))
+                return {}
+
+            yahoo_data = await loop.run_in_executor(None, fetch_yahoo, clean_q)
+            for q_item in yahoo_data.get("quotes", []):
+                sym = q_item.get("symbol")
+                if not sym or any(r.get("s") == sym for r in results):
+                    continue
+                name = q_item.get("shortname") or q_item.get("longname") or sym
+                exch = q_item.get("exchange", "")
+                ex_label = "Groww NSE" if exch in ["NSI", "NSE"] else ("Groww BSE" if exch in ["BSE", "BSI"] else exch)
+                cat = "EQUITY" if q_item.get("quoteType") == "EQUITY" else q_item.get("quoteType", "EQUITY")
+                results.append({
+                    "s": sym,
+                    "n": name,
+                    "cat": cat,
+                    "ex": ex_label,
+                    "idx": len(assets) + len(results)
+                })
+        except Exception:
+            pass
+
+    return results[:35]
+
 @app.get("/api/history")
 async def get_history():
     return load_history()

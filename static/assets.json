@@ -1279,5 +1279,89 @@
     "cat": "CRYPTO",
     "ex": "Crypto",
     "idx": 182
+  },
+  {
+    "s": "KALYANKJIL.NS",
+    "n": "Kalyan Jewellers India Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 183
+  },
+  {
+    "s": "SENCO.NS",
+    "n": "Senco Gold Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 184
+  },
+  {
+    "s": "THANGAMAYL.NS",
+    "n": "Thangamayil Jewellery Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 185
+  },
+  {
+    "s": "PCJEWELLER.NS",
+    "n": "PC Jeweller Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 186
+  },
+  {
+    "s": "MOTISONS.NS",
+    "n": "Motisons Jewellers Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 187
+  },
+  {
+    "s": "TBZ.NS",
+    "n": "Tribhovandas Bhimji Zaveri (TBZ)",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 188
+  },
+  {
+    "s": "SWIGGY.NS",
+    "n": "Swiggy Limited (Food & Instamart)",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 189
+  },
+  {
+    "s": "HYUNDAI.NS",
+    "n": "Hyundai Motor India Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 190
+  },
+  {
+    "s": "BAJAJHFL.NS",
+    "n": "Bajaj Housing Finance Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 191
+  },
+  {
+    "s": "OLAELEC.NS",
+    "n": "Ola Electric Mobility Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 192
+  },
+  {
+    "s": "PREMIERENE.NS",
+    "n": "Premier Energies Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 193
+  },
+  {
+    "s": "WAARIEE.NS",
+    "n": "Waaree Energies Limited",
+    "cat": "EQUITY",
+    "ex": "Groww NSE",
+    "idx": 194
   }
 ]
